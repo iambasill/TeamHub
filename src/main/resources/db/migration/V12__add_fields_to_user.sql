@@ -1,0 +1,4 @@
+ALTER TABLE employees
+    DROP COLUMN IF EXISTS phonr,
+    DROP COLUMN IF EXISTS email_id
+

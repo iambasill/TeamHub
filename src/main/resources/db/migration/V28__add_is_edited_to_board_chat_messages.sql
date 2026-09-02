@@ -1,0 +1,2 @@
+ALTER TABLE board_chat_messages
+    ADD COLUMN is_edited BOOLEAN NOT NULL DEFAULT FALSE;
