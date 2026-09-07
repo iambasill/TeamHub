@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,20 +31,25 @@ public class MailService {
 
     /**
      * Sends an HTML email. Templates rendered via {@link #renderTemplate} are HTML fragments.
+     * <p>
+     * Runs on a dedicated executor and never throws back to the caller — an SMTP outage is
+     * routine and must never block, slow down, or roll back the operation that triggered the
+     * email (e.g. creating an employee, changing a password).
      */
+    @Async("mailTaskExecutor")
     public void sendMail(String to, String subject, String htmlBody) {
-        MimeMessage mimeMessage = mailSender.createMimeMessage();
         try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, StandardCharsets.UTF_8.name());
             helper.setFrom(fromName + " <" + mailUsername + ">");
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
-        } catch (MessagingException e) {
-            throw new IllegalStateException("Failed to build email to " + to, e);
+            mailSender.send(mimeMessage);
+            log.info("Sent email to {} with subject '{}'", to, subject);
+        } catch (MessagingException | RuntimeException e) {
+            log.warn("Failed to send email to {} with subject '{}': {}", to, subject, e.getMessage());
         }
-        mailSender.send(mimeMessage);
-        log.info("Sent email to {} with subject '{}'", to, subject);
     }
 
     /**

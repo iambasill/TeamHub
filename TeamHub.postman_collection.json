@@ -1,0 +1,2206 @@
+{
+  "info": {
+    "_postman_id": "c0a73778-9766-4cfb-8cbf-e9586160ed21",
+    "name": "TeamHub API",
+    "description": "TeamHub backend (Spring Boot) — company operations platform: people, attendance, leave, payroll, scheduling, assets, vendors, expenses, incidents/on-call, announcements, policy documents, resource booking, and the Board Room.\n\n**Getting started**\n1. Run `Auth > Login` first (uses the seeded bootstrap account admin@ems.com / Admin@123). This stores the session both as cookies (Postman's cookie jar resends them automatically) and as the `accessToken`/`refreshToken` collection variables.\n2. A collection-level pre-request script attaches `Authorization: Bearer {{accessToken}}` automatically to every request once it is set, so you never have to configure auth per-request.\n3. Work through folders top to bottom the first time — many \"Create\" requests save the id they return into a collection variable (e.g. `departmentId`, `employeeId`) that later requests in this collection already reference.\n\nBase URL defaults to `http://localhost:8080/api/v1` (the `/api/v1` context-path is configured in application.yml) — change the `baseUrl` collection variable if your server runs elsewhere.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Login, session refresh, and password management. Every other folder in this collection depends on running Login first.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Authenticates and sets accessToken/refreshToken as HttpOnly cookies. Also populates {{accessToken}}/{{refreshToken}} collection variables for requests that need an explicit Bearer header. Seeded bootstrap account: admin@ems.com / Admin@123.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ems.com\",\n  \"password\": \"Admin@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login succeeded\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "// The access/refresh tokens are only ever sent as HttpOnly cookies (never in the JSON body).",
+                  "// Postman's cookie jar will already resend them automatically on this domain, but we also",
+                  "// parse them into collection variables here as a fallback (Newman, cookie jar disabled, etc.)",
+                  "// and so the pre-request script below can attach an explicit Authorization header too.",
+                  "const cookieHeaders = pm.response.headers.all().filter(function (h) {",
+                  "    return h.key.toLowerCase() === \"set-cookie\";",
+                  "});",
+                  "let accessToken, refreshToken;",
+                  "cookieHeaders.forEach(function (h) {",
+                  "    const accessMatch = /^accessToken=([^;]+)/.exec(h.value);",
+                  "    const refreshMatch = /^refreshToken=([^;]+)/.exec(h.value);",
+                  "    if (accessMatch) accessToken = accessMatch[1];",
+                  "    if (refreshMatch) refreshToken = refreshMatch[1];",
+                  "});",
+                  "if (accessToken) {",
+                  "    pm.collectionVariables.set(\"accessToken\", accessToken);",
+                  "    console.log(\"Saved accessToken from Set-Cookie\");",
+                  "}",
+                  "if (refreshToken) {",
+                  "    pm.collectionVariables.set(\"refreshToken\", refreshToken);",
+                  "    console.log(\"Saved refreshToken from Set-Cookie\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "description": "Returns the authenticated user's profile (AuthResponseDto)."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Tokens",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "Uses the refreshToken cookie automatically if present; the JSON body below is a fallback for clients that cannot rely on cookies (e.g. Newman with cookie jar disabled).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout",
+            "description": "Reads the refreshToken cookie, revokes it, and clears both auth cookies."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/forgot-password",
+            "description": "Sends a one-time reset code to the given email via OTP.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ems.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/reset-password",
+            "description": "Completes a password reset using the OTP/token sent by Forgot Password.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ems.com\",\n  \"newPassword\": \"NewPassword@123\",\n  \"token\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/change-password",
+            "description": "Requires the current password. Requires auth.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"Admin@123\",\n  \"newPassword\": \"NewPassword@123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Departments",
+      "description": "departmentId from Create Department is required before creating an Employee.",
+      "item": [
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/departments",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering\",\n  \"description\": \"Builds and maintains the product.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('departmentId', json.data.id);",
+                  "        console.log('Saved departmentId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/departments",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/departments/{{departmentId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/departments/{{departmentId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering\",\n  \"description\": \"Builds, ships, and operates the product.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/departments/{{departmentId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "description": "roleId from Create Role can be attached to an employee via roleIds on Create/Update Employee.",
+      "item": [
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/roles",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HR\",\n  \"description\": \"Human Resources staff.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('roleId', json.data.id);",
+                  "        console.log('Saved roleId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/roles",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Role By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/roles/{{roleId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/roles/{{roleId}}",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"HR\",\n  \"description\": \"Human Resources & People Ops staff.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/roles/{{roleId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "description": "Run \"Create Department\" and \"Create Role\" first so departmentId/roleId are populated.",
+      "item": [
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/employees",
+            "description": "departmentId must exist (run Create Department first). roleIds is optional. A temporary password is generated and emailed to the given address; a linked user account is created automatically.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane.doe@teamhub.example\",\n  \"hireDate\": \"2026-09-07\",\n  \"jobTitle\": \"Software Engineer\",\n  \"salary\": 85000,\n  \"departmentId\": \"{{departmentId}}\",\n  \"roleIds\": [\n    \"{{roleId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('employeeId', json.data.id);",
+                  "        console.log('Saved employeeId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }",
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.userId) {",
+                  "        pm.collectionVariables.set('employeeUserId', json.data.userId);",
+                  "        console.log('Saved employeeUserId =', json.data.userId);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/employees?firstName=&lastName=&email=",
+            "description": "All query params are optional filters (EmployeeQuerySearch). Non-HR/Admin/SuperAdmin callers only see their own department."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/employees/{{employeeId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/employees/me",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile Picture",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/employees/me/profile-picture",
+            "description": "multipart/form-data upload. Select a file for the \"file\" field before sending.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/employees/{{employeeId}}",
+            "description": "Partial update — every field is optional and only non-null ones are applied. Note: sending an empty roleIds array will NOT clear existing roles (only a non-empty array replaces them).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobTitle\": \"Senior Software Engineer\",\n  \"salary\": 95000,\n  \"departmentId\": \"{{departmentId}}\",\n  \"roleIds\": [\n    \"{{roleId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Employee",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/employees/{{employeeId}}/activate",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete (Deactivate) Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/employees/{{employeeId}}",
+            "description": "Soft delete: flips active=false and locks the linked login. Run this last so employeeId stays usable for the rest of the collection while you explore it."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "description": "Check-in/out apply to the currently authenticated employee.",
+      "item": [
+        {
+          "name": "Check In",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/attendance/check-in",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Check Out",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/attendance/check-out",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "My Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/attendance/me",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "All Attendance (HR/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/attendance?date=2026-09-07&departmentId={{departmentId}}",
+            "description": "date and departmentId are both optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Monthly Attendance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/attendance/report?year=2026&month=9",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Leave Requests",
+      "description": "",
+      "item": [
+        {
+          "name": "Submit Leave Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/leaves",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveType\": \"ANNUAL\",\n  \"startDate\": \"2026-10-01\",\n  \"endDate\": \"2026-10-05\",\n  \"reason\": \"Family vacation\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('leaveRequestId', json.data.id);",
+                  "        console.log('Saved leaveRequestId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "My Leave History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leaves/me",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "All Leave Requests (Manager/HR/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leaves?status=&employeeId=",
+            "description": "status and employeeId are optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Leave Request By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/leaves/{{leaveRequestId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Leave Request",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/leaves/{{leaveRequestId}}/approve",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Leave Request",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{baseUrl}}/leaves/{{leaveRequestId}}/reject",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel My Leave Request",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/leaves/{{leaveRequestId}}",
+            "description": "Only the employee who submitted it can cancel it, and only while still pending."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payroll",
+      "description": "Run Payroll first, then copy a returned record id into {{payrollId}} to try Get Payroll Record By Id.",
+      "item": [
+        {
+          "name": "Run Payroll",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/payroll/run",
+            "description": "Generates a payroll run (one Payroll record per active employee) for the given pay period.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payPeriod\": \"2026-09-30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "All Payroll Records",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payroll",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "My Payslips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payroll/me",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payroll Record By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payroll/{{payrollId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Payslips For an Employee",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payroll/employee/{{employeeId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Scheduling",
+      "description": "Create Shift and Assign Employee To Shift populate shiftId/shiftAssignmentId used by Shift Swap Requests below.",
+      "item": [
+        {
+          "name": "List Shifts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/shifts",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/scheduling/shifts",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Morning\",\n  \"startTime\": \"08:00:00\",\n  \"endTime\": \"16:00:00\",\n  \"description\": \"Standard morning shift\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('shiftId', json.data.id);",
+                  "        console.log('Saved shiftId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Roster",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/roster?start=2026-09-01&end=2026-09-30",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Employee To Shift",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/scheduling/roster",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftId\": \"{{shiftId}}\",\n  \"employeeId\": \"{{employeeId}}\",\n  \"date\": \"2026-09-08\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('shiftAssignmentId', json.data.id);",
+                  "        console.log('Saved shiftAssignmentId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Roster Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/roster/{{shiftAssignmentId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Currently On Duty",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/on-duty",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Shift Swap Requests",
+      "description": "Requires a shiftAssignmentId — run Scheduling > Assign Employee To Shift first.",
+      "item": [
+        {
+          "name": "List Swap Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/swap-requests?status=",
+            "description": "status is optional (PENDING, APPROVED, REJECTED, CANCELLED)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Swap Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/scheduling/swap-requests",
+            "description": "proposedToEmployeeId is optional — omit/null it for an \"anyone can take this\" request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shiftAssignmentId\": \"{{shiftAssignmentId}}\",\n  \"proposedToEmployeeId\": null,\n  \"reason\": \"Doctor appointment\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('swapRequestId', json.data.id);",
+                  "        console.log('Saved swapRequestId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve Swap Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/scheduling/swap-requests/{{swapRequestId}}/approve",
+            "description": "replacementEmployeeId is only required if the original request had no proposedToEmployeeId.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"replacementEmployeeId\": \"{{employeeId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Swap Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/swap-requests/{{swapRequestId}}/reject",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Swap Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/scheduling/swap-requests/{{swapRequestId}}/cancel",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assets",
+      "description": "",
+      "item": [
+        {
+          "name": "List Assets (HR/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/assets",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "My Assigned Assets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/assets/mine",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Asset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assets",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"MacBook Pro 16\\\"\",\n  \"category\": \"Laptop\",\n  \"serialNumber\": \"SN-12345\",\n  \"notes\": \"Provisioned for engineering\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('assetId', json.data.id);",
+                  "        console.log('Saved assetId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Asset To Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assets/{{assetId}}/assign",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"{{employeeId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Return Asset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/assets/{{assetId}}/return",
+            "description": "Body is optional — omit it entirely for a plain return with no condition notes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conditionNotes\": \"Minor scratches on the lid\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Vendors",
+      "description": "",
+      "item": [
+        {
+          "name": "List Vendors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/vendors?status=",
+            "description": "status is optional (ACTIVE, INACTIVE)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Vendor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vendors",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Office Supplies\",\n  \"category\": \"Office Supplies\",\n  \"contactName\": \"John Smith\",\n  \"contactEmail\": \"john@acme.example\",\n  \"contactPhone\": \"+1-555-0100\",\n  \"notes\": \"Preferred supplier\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('vendorId', json.data.id);",
+                  "        console.log('Saved vendorId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Vendor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/vendors/{{vendorId}}",
+            "description": "Every field optional — only non-null fields are applied.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Preferred supplier — renewed contract 2026\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Activate Vendor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/vendors/{{vendorId}}/activate",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate Vendor",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/vendors/{{vendorId}}/deactivate",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Expense Claims",
+      "description": "",
+      "item": [
+        {
+          "name": "My Expense Claims",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/expenses",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "All Expense Claims (Manager/HR/Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/expenses/all?status=",
+            "description": "status is optional (PENDING, APPROVED, REJECTED, PAID)."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Expense Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/expenses",
+            "description": "category must be one of: TRAVEL, MEALS, SUPPLIES, SOFTWARE, OTHER.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"TRAVEL\",\n  \"amount\": 152.5,\n  \"description\": \"Client site visit taxi fares\",\n  \"receiptReference\": \"RCPT-0001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('expenseClaimId', json.data.id);",
+                  "        console.log('Saved expenseClaimId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve Expense Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/expenses/{{expenseClaimId}}/approve",
+            "description": "Body is optional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewNotes\": \"Approved — within policy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Expense Claim",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/expenses/{{expenseClaimId}}/reject",
+            "description": "Body is optional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reviewNotes\": \"Missing receipt\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Expense Claim Paid",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/expenses/{{expenseClaimId}}/mark-paid",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Incidents & On-Call",
+      "description": "employeeUserId (the linked user id of an employee, not the employee id itself) comes from Employees > Create Employee.",
+      "item": [
+        {
+          "name": "List Incidents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/incidents?status=&severity=",
+            "description": "status (OPEN, ACKNOWLEDGED, RESOLVED, CLOSED) and severity (LOW, MEDIUM, HIGH, CRITICAL) are optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Incident By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/incidents/{{incidentId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Report Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/incidents",
+            "description": "severity must be one of: LOW, MEDIUM, HIGH, CRITICAL.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"API latency spike\",\n  \"description\": \"p99 latency above 2s on /employees\",\n  \"severity\": \"HIGH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('incidentId', json.data.id);",
+                  "        console.log('Saved incidentId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/incidents/{{incidentId}}/assign",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assigneeUserId\": \"{{employeeUserId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Acknowledge Incident",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/incidents/{{incidentId}}/acknowledge",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/incidents/{{incidentId}}/resolve",
+            "description": "Body is optional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resolutionNotes\": \"Rolled back the offending deploy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Close Incident",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/incidents/{{incidentId}}/close",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "List On-Call Roster (Upcoming)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/incidents/on-call",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Current On-Call",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/incidents/on-call/current",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create On-Call Assignment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/incidents/on-call",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{employeeUserId}}\",\n  \"startsAt\": \"2026-09-08T00:00:00Z\",\n  \"endsAt\": \"2026-09-15T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('onCallId', json.data.id);",
+                  "        console.log('Saved onCallId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete On-Call Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/incidents/on-call/{{onCallId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Announcements",
+      "description": "",
+      "item": [
+        {
+          "name": "List My Announcements",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/announcements",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Announcement",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/announcements",
+            "description": "targetAudiences entries must be one of: ALL, EMPLOYEE, HR, MANAGER, ADMIN, SUPER_ADMIN, BOARD_MEMBERS. Omit/empty means everyone.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Office closed Monday\",\n  \"body\": \"The office will be closed for the public holiday on Monday.\",\n  \"pinned\": true,\n  \"expiresAt\": \"2026-09-15T00:00:00Z\",\n  \"targetAudiences\": [\n    \"ALL\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('announcementId', json.data.id);",
+                  "        console.log('Saved announcementId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Announcement",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/announcements/{{announcementId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Policy Documents",
+      "description": "",
+      "item": [
+        {
+          "name": "List Policy Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/policy-documents?q=",
+            "description": "q is an optional search term."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Policy Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/policy-documents",
+            "description": "multipart/form-data. Select a file for the \"file\" field before sending.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                },
+                {
+                  "key": "title",
+                  "type": "text",
+                  "value": "Remote Work Policy"
+                },
+                {
+                  "key": "category",
+                  "type": "text",
+                  "value": "HR"
+                },
+                {
+                  "key": "description",
+                  "type": "text",
+                  "value": "Guidelines for remote and hybrid work."
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('policyDocumentId', json.data.id);",
+                  "        console.log('Saved policyDocumentId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Policy Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/policy-documents/{{policyDocumentId}}/download",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Policy Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/policy-documents/{{policyDocumentId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Resource Booking",
+      "description": "",
+      "item": [
+        {
+          "name": "List Bookable Resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/bookings/resources",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Bookable Resource",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings/resources",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Conference Room A\",\n  \"description\": \"Seats 10, has a projector\",\n  \"capacity\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('resourceId', json.data.id);",
+                  "        console.log('Saved resourceId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/bookings?resourceId=&start=&end=",
+            "description": "resourceId, start and end (OffsetDateTime, e.g. 2026-09-01T00:00:00Z) are all optional filters."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/bookings",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceId\": \"{{resourceId}}\",\n  \"title\": \"Sprint Planning\",\n  \"startsAt\": \"2026-09-08T09:00:00Z\",\n  \"endsAt\": \"2026-09-08T10:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('bookingId', json.data.id);",
+                  "        console.log('Saved bookingId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Board Room",
+      "description": "Requires the current user to be a Board Room member (the seeded admin@ems.com account is auto-enrolled).",
+      "item": [
+        {
+          "name": "Am I a Board Member",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/board/membership/me",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Record Board Room Entry",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/board/enter",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "List Board Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/board/members",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Add Board Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/board/members",
+            "description": "userId is a User id (e.g. {{employeeUserId}} from Employees > Create Employee), not an employee id. Requires ROLE_ADMIN.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{employeeUserId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Board Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/board/members/{{employeeUserId}}",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Board Activity Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/board/activity-log?userId=",
+            "description": "userId is an optional filter."
+          },
+          "response": []
+        },
+        {
+          "name": "Board Chat History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/board/chat/messages",
+            "description": "Read-only — chat messages are sent over the /ws/board WebSocket, not REST."
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Board Document",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/board/documents?isRecording=false",
+            "description": "multipart/form-data. Select a file for the \"file\" field before sending.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && json.data && json.data.id) {",
+                  "        pm.collectionVariables.set('boardDocumentId', json.data.id);",
+                  "        console.log('Saved boardDocumentId =', json.data.id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Board Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/board/documents",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Download Board Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/board/documents/{{boardDocumentId}}/download",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Board Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/board/documents/{{boardDocumentId}}",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "",
+      "item": [
+        {
+          "name": "My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications",
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try {",
+                  "    const json = pm.response.json();",
+                  "    if (json && Array.isArray(json.data) && json.data.length > 0 && json.data[0].id) {",
+                  "        pm.collectionVariables.set('notificationId', json.data[0].id);",
+                  "        console.log('Saved notificationId =', json.data[0].id);",
+                  "    }",
+                  "} catch (e) { /* ignore non-JSON responses */ }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/unread-count",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}/read",
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/notifications/read-all",
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Ops Pulse",
+      "description": "",
+      "item": [
+        {
+          "name": "Get Ops Pulse",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/ops-pulse",
+            "description": "At-a-glance operational health: open incidents, SLA breaches, on-call coverage, pending leave, etc."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Attach a Bearer token automatically once Login has populated {{accessToken}}.",
+          "// Left untouched (no header added) before login, so this never sends a malformed",
+          "// \"Authorization: Bearer \" (empty) header that would break the public /auth/** routes.",
+          "const token = pm.collectionVariables.get(\"accessToken\");",
+          "if (token) {",
+          "    pm.request.headers.upsert({ key: \"Authorization\", value: \"Bearer \" + token });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "departmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "roleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "employeeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "employeeUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "payrollId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shiftId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shiftAssignmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "swapRequestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "assetId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vendorId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "expenseClaimId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "incidentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "onCallId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "announcementId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "policyDocumentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resourceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "boardDocumentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "leaveRequestId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
