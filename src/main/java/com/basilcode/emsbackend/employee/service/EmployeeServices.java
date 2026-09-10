@@ -12,7 +12,6 @@ import com.basilcode.emsbackend.user.entity.User;
 import com.basilcode.emsbackend.user.service.UserService;
 import com.basilcode.emsbackend.board.storage.StorageProvider;
 import com.basilcode.emsbackend.board.storage.StorageResult;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,17 +48,6 @@ public class EmployeeServices implements IEmployeeService {
     private final MailService mailService;
     private final StorageProvider storageProvider;
     private final SecureRandom secureRandom = new SecureRandom();
-
-    /**
-     * When true, POST /employees returns the generated password in its response
-     * so an administrator can hand it over directly.
-     *
-     * Defaults to false: the password is normally delivered by email and should
-     * not travel in an API response that may be logged by a proxy. Turn it on
-     * when SMTP is unavailable, which is the case it exists for.
-     */
-    @Value("${app.employee.return-temporary-password:false}")
-    private boolean returnTemporaryPassword;
 
     @Override
     @Transactional
@@ -110,25 +98,7 @@ public class EmployeeServices implements IEmployeeService {
         );
         mailService.sendMail(request.getEmail(), "Your EMS account has been created", body);
 
-        EmployeeResponse response = employeeMapper.toResponse(saved);
-
-        /*
-         * sendMail is @Async and swallows its own failures, so an SMTP outage
-         * never reaches this line — the employee is created either way and the
-         * temporary password simply goes nowhere. It exists in plain text only
-         * inside this method, and after this it is unrecoverable: the User row
-         * stores a bcrypt hash.
-         *
-         * That is the gap this flag closes. When it is on, the caller who just
-         * created the account — HR or Admin, who chose the email address a
-         * moment ago — gets the password back and can pass it on by hand.
-         */
-        if (returnTemporaryPassword) {
-            response.setTemporaryPassword(temporaryPassword);
-            log.info("Returned temporary password in the create response for {}", request.getEmail());
-        }
-
-        return response;
+        return employeeMapper.toResponse(saved);
     }
 
     private String generateTemporaryPassword() {

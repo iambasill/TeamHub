@@ -57,11 +57,6 @@ spring:
 app:
   mail:
     from-name: ${MAIL_FROM}
-  employee:
-    # Return the generated password in the POST /employees response so an admin
-    # can hand it over directly. Needed while SMTP is unavailable, since the
-    # password is otherwise unrecoverable once the email fails to send.
-    return-temporary-password: ${RETURN_TEMP_PASSWORD:false}
   storage:
     type: ${STORAGE_TYPE:local}            # local | cloud
     provider: ${STORAGE_PROVIDER:}         # s3 | cloudinary | gcs | azure  (only when type=cloud)
