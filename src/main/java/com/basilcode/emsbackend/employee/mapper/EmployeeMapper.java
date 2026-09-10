@@ -17,6 +17,10 @@ public interface EmployeeMapper {
     @Mapping(source = "user.profilePictureUrl", target = "profilePictureUrl")
     @Mapping(source = "department.id", target = "departmentId")
     @Mapping(source = "department.name", target = "departmentName")
+    // Never mapped from the entity: the Employee/User rows only hold a bcrypt
+    // hash. EmployeeServices sets this explicitly on the create response when
+    // app.employee.return-temporary-password is enabled.
+    @Mapping(target = "temporaryPassword", ignore = true)
     EmployeeResponse toResponse(Employee employee);
 
     @Mapping(target = "id", ignore = true)
