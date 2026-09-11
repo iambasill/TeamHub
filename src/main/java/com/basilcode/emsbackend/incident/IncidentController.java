@@ -74,7 +74,7 @@ public class IncidentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Incident reported", mapper.toDto(incident)));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/assign")
     public ResponseEntity<ApiResponse<IncidentDto>> assign(@PathVariable UUID id, @Valid @RequestBody AssignIncidentRequest request) {
         Incident incident = incidentService.assign(id, request.assigneeUserId());
@@ -92,7 +92,7 @@ public class IncidentController {
         return ResponseEntity.ok(ApiResponse.success("Incident resolved", mapper.toDto(incidentService.resolve(id, notes))));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/close")
     public ResponseEntity<ApiResponse<IncidentDto>> close(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Incident closed", mapper.toDto(incidentService.close(id))));
@@ -116,7 +116,7 @@ public class IncidentController {
         return ResponseEntity.ok(ApiResponse.success("Current on-call retrieved", assignments));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/on-call")
     public ResponseEntity<ApiResponse<OnCallAssignmentDto>> createOnCall(
             @Valid @RequestBody CreateOnCallAssignmentRequest request,
@@ -138,7 +138,7 @@ public class IncidentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("On-call assignment created", mapper.toDto(assignment)));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/on-call/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteOnCall(@PathVariable UUID id) {
         if (!onCallAssignmentRepository.existsById(id)) {

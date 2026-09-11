@@ -27,7 +27,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/board/chat")
 @RequiredArgsConstructor
-// @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)") // TODO: re-enable when permission model is finalised
+@PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)")
 public class BoardChatController {
 
     private final BoardChatService boardChatService;

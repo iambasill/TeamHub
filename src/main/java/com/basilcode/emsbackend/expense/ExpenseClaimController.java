@@ -47,7 +47,7 @@ public class ExpenseClaimController {
         return ResponseEntity.ok(ApiResponse.success("Your expense claims retrieved", claims));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<ExpenseClaimDto>>> listAll(@RequestParam(required = false) String status) {
         ExpenseStatus statusEnum = status == null ? null : parseStatus(status);
@@ -65,7 +65,7 @@ public class ExpenseClaimController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Expense claim submitted", mapper.toDto(claim)));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<ExpenseClaimDto>> approve(
             @PathVariable UUID id,
@@ -77,7 +77,7 @@ public class ExpenseClaimController {
         return ResponseEntity.ok(ApiResponse.success("Expense claim approved", mapper.toDto(claim)));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<ExpenseClaimDto>> reject(
             @PathVariable UUID id,
@@ -89,7 +89,7 @@ public class ExpenseClaimController {
         return ResponseEntity.ok(ApiResponse.success("Expense claim rejected", mapper.toDto(claim)));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/mark-paid")
     public ResponseEntity<ApiResponse<ExpenseClaimDto>> markPaid(@PathVariable UUID id) {
         ExpenseClaim claim = expenseClaimService.markPaid(id);

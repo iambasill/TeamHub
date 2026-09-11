@@ -23,7 +23,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/vendors")
 @RequiredArgsConstructor
-// @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+@PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
 public class VendorController {
 
     private final VendorService vendorService;

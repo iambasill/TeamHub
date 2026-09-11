@@ -1,8 +1,11 @@
 package com.basilcode.emsbackend.board.storage;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.nio.file.Paths;
 
 /**
  * Reads {@code app.storage.type} (local | cloud) and, for cloud,
@@ -12,6 +15,7 @@ import org.springframework.context.annotation.Configuration;
  * <p>All cloud-specific {@code @Value} fields default to an empty string so the
  * app can start with {@code type=local} without needing any cloud credentials.
  */
+@Slf4j
 @Configuration
 public class StorageConfig {
 
@@ -59,7 +63,20 @@ public class StorageConfig {
     @Bean
     public StorageProvider storageProvider() {
         return switch (type.trim().toLowerCase()) {
-            case "local" -> new LocalStorageProvider(localUploadDir, localBaseUrl);
+            case "local" -> {
+                if (!Paths.get(localUploadDir).isAbsolute()) {
+                    log.warn("app.storage.local.upload-dir ('{}') is a relative path — files will be stored "
+                            + "inside the deploy directory and WILL BE LOST on a fresh clone or clean deploy. "
+                            + "Set UPLOAD_DIR to an absolute path on a persistent volume in production.",
+                            localUploadDir);
+                }
+                if (localBaseUrl.contains("localhost")) {
+                    log.warn("app.storage.local.base-url is still the localhost default ('{}') — stored file "
+                            + "URLs (e.g. profilePictureUrl) will be dead links for anyone but this machine. "
+                            + "Set BASE_URL in the deploy environment.", localBaseUrl);
+                }
+                yield new LocalStorageProvider(localUploadDir, localBaseUrl);
+            }
             case "cloud" -> buildCloudProvider();
             default -> throw new IllegalStateException(
                     "Unknown app.storage.type='" + type + "'. Allowed values: local, cloud");

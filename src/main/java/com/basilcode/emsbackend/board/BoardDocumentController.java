@@ -27,7 +27,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/board/documents")
 @RequiredArgsConstructor
-// @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)") // TODO: re-enable when permission model is finalised
+@PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)")
 public class BoardDocumentController {
 
     private final BoardDocumentService boardDocumentService;

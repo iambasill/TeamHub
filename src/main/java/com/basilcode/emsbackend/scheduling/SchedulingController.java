@@ -39,7 +39,7 @@ public class SchedulingController {
         return ResponseEntity.ok(ApiResponse.success("Shifts retrieved", shifts));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/shifts")
     public ResponseEntity<ApiResponse<ShiftDto>> createShift(@Valid @RequestBody CreateShiftRequest request) {
         Shift shift = schedulingService.createShift(request.name(), request.startTime(), request.endTime(), request.description());
@@ -54,14 +54,14 @@ public class SchedulingController {
         return ResponseEntity.ok(ApiResponse.success("Roster retrieved", roster));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/roster")
     public ResponseEntity<ApiResponse<ShiftAssignmentDto>> assign(@Valid @RequestBody CreateShiftAssignmentRequest request) {
         ShiftAssignment assignment = schedulingService.assign(request.shiftId(), request.employeeId(), request.date());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Employee rostered onto shift", mapper.toDto(assignment)));
     }
 
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/roster/{id}")
     public ResponseEntity<ApiResponse<Void>> removeAssignment(@PathVariable UUID id) {
         schedulingService.removeAssignment(id);

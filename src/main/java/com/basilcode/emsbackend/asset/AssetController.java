@@ -36,7 +36,7 @@ public class AssetController {
     private final AssetService assetService;
     private final EmployeeRepository employeeRepository;
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<AssetDto>>> list() {
         List<AssetDto> assets = assetService.list().stream().map(this::toDto).toList();
@@ -53,21 +53,21 @@ public class AssetController {
         return ResponseEntity.ok(ApiResponse.success("Your assets retrieved", assets));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<AssetDto>> create(@Valid @RequestBody CreateAssetRequest request) {
         Asset asset = assetService.create(request.name(), request.category(), request.serialNumber(), request.notes());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Asset added", toDto(asset)));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/assign")
     public ResponseEntity<ApiResponse<AssetDto>> assign(@PathVariable UUID id, @Valid @RequestBody AssignAssetRequest request) {
         AssetAssignment assignment = assetService.assign(id, request.employeeId());
         return ResponseEntity.ok(ApiResponse.success("Asset assigned", toDto(assignment.getAsset(), assignment)));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/{id}/return")
     public ResponseEntity<ApiResponse<AssetDto>> returnAsset(
             @PathVariable UUID id, @RequestBody(required = false) ReturnAssetRequest request) {

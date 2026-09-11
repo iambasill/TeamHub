@@ -45,7 +45,7 @@ public class BoardController {
     }
 
     @PostMapping("/enter")
-    // @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)")
     public ResponseEntity<ApiResponse<Void>> enter(@AuthenticationPrincipal UserDetails currentUser) {
         User user = userRepository.findByEmailId(currentUser.getUsername())
                 .orElseThrow(() -> new NotFoundException("User not found: " + currentUser.getUsername()));
@@ -54,7 +54,7 @@ public class BoardController {
     }
 
     @GetMapping("/members")
-    // @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)")
     public ResponseEntity<ApiResponse<List<BoardMemberDto>>> listMembers() {
         List<BoardMemberDto> members = boardMembershipService.listMembers().stream()
                 .map(this::toDto)
@@ -63,7 +63,7 @@ public class BoardController {
     }
 
     @PostMapping("/members")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<BoardMemberDto>> addMember(
             @Valid @RequestBody AddBoardMemberRequest request,
             @AuthenticationPrincipal UserDetails currentUser) {
@@ -74,14 +74,14 @@ public class BoardController {
     }
 
     @DeleteMapping("/members/{userId}")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> removeMember(@PathVariable UUID userId) {
         boardMembershipService.removeMember(userId);
         return ResponseEntity.ok(ApiResponse.success("Board member removed"));
     }
 
     @GetMapping("/activity-log")
-    // @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("@boardMembershipService.isCurrentUserMember(authentication)")
     public ResponseEntity<ApiResponse<List<BoardActivityLogDto>>> getActivityLog(
             @RequestParam(required = false) UUID userId) {
         List<BoardActivityLogDto> log = boardMembershipService.activityLog(userId).stream()

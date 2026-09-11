@@ -16,6 +16,7 @@ import com.basilcode.emsbackend.user.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,15 +37,25 @@ public class AuthService {
     private final AuthMapper authMapper;
     private final OtpService otpService;
     private final MailService mailService;
+    private final LoginRateLimiter loginRateLimiter;
 
 
     public User authenticate(LoginDto loginDto) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginDto.getEmail(),
-                        loginDto.getPassword()
-                )
-        );
+        loginRateLimiter.checkAllowed(loginDto.getEmail());
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginDto.getEmail(),
+                            loginDto.getPassword()
+                    )
+            );
+        } catch (AuthenticationException ex) {
+            loginRateLimiter.recordFailure(loginDto.getEmail());
+            throw ex;
+        }
+
+        loginRateLimiter.recordSuccess(loginDto.getEmail());
 
         return userService.findUserByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new NotFoundException("User Not Found"));

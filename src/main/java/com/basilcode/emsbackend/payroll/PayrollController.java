@@ -23,7 +23,7 @@ public class PayrollController {
     private final PayrollServices payrollServices;
 
     @PostMapping("/run")
-    // @PreAuthorize("hasRole('ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<PayrollResponse>>> runPayroll(@Valid @RequestBody PayrollRunRequest request) {
         List<PayrollResponse> responses = payrollServices.runPayroll(request.getPayPeriod());
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -31,28 +31,28 @@ public class PayrollController {
     }
 
     @GetMapping
-    // @PreAuthorize("hasAnyRole('HR','ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public ResponseEntity<ApiResponse<List<PayrollResponse>>> getAllPayroll() {
         List<PayrollResponse> responses = payrollServices.getAllPayroll();
         return ResponseEntity.ok(ApiResponse.success("Payroll records retrieved successfully", responses));
     }
 
     @GetMapping("/me")
-    // @PreAuthorize("hasRole('EMPLOYEE')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<ApiResponse<List<PayrollResponse>>> getMyPayroll(@AuthenticationPrincipal UserDetails currentUser) {
         List<PayrollResponse> responses = payrollServices.getMyPayroll(currentUser.getUsername());
         return ResponseEntity.ok(ApiResponse.success("Payslips retrieved successfully", responses));
     }
 
     @GetMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public ResponseEntity<ApiResponse<PayrollResponse>> getPayroll(@PathVariable UUID id) {
         PayrollResponse response = payrollServices.getPayroll(id);
         return ResponseEntity.ok(ApiResponse.success("Payroll record retrieved successfully", response));
     }
 
     @GetMapping("/employee/{empId}")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public ResponseEntity<ApiResponse<List<PayrollResponse>>> getPayrollForEmployee(@PathVariable UUID empId) {
         List<PayrollResponse> responses = payrollServices.getPayrollForEmployee(empId);
         return ResponseEntity.ok(ApiResponse.success("Payslips retrieved successfully", responses));

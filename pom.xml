@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.3</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -61,6 +61,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <version>42.7.13</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -192,7 +193,7 @@
                     <url>jdbc:postgresql://${env.PGHOST}:${env.PGPORT}/${env.PGDATABASE}?sslmode=disable</url>
                     <user>${env.PGUSER}</user>
                     <password>${env.PGPASSWORD}</password>
-                    <cleanDisabled>false</cleanDisabled>
+                    <cleanDisabled>true</cleanDisabled>
                     <outOfOrder>true</outOfOrder>
                 </configuration>
                 <dependencies>
@@ -204,7 +205,7 @@
                     <dependency>
                         <groupId>org.postgresql</groupId>
                         <artifactId>postgresql</artifactId>
-                        <version>42.7.7</version>
+                        <version>42.7.13</version>
                     </dependency>
                 </dependencies>
             </plugin>

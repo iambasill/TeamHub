@@ -38,7 +38,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/me")
-    // @PreAuthorize("hasRole('EMPLOYEE')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasRole('EMPLOYEE')")
     public ResponseEntity<ApiResponse<List<AttendanceResponse>>> getMyAttendance(
             @AuthenticationPrincipal UserDetails currentUser) {
         List<AttendanceResponse> responses = attendanceServices.getMyAttendance(currentUser.getUsername());
@@ -46,7 +46,7 @@ public class AttendanceController {
     }
 
     @GetMapping
-    // @PreAuthorize("hasAnyRole('HR','ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public ResponseEntity<ApiResponse<List<AttendanceResponse>>> getAllAttendance(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(required = false) UUID departmentId) {
@@ -55,7 +55,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/report")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public ResponseEntity<ApiResponse<List<AttendanceReportEntryResponse>>> getMonthlyReport(
             @RequestParam int year,
             @RequestParam int month) {

@@ -38,7 +38,7 @@ public class AnnouncementController {
         return ResponseEntity.ok(ApiResponse.success("Announcements retrieved", announcements));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<AnnouncementDto>> create(
             @Valid @RequestBody CreateAnnouncementRequest request,
@@ -50,7 +50,7 @@ public class AnnouncementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Announcement posted", toDto(announcement)));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         announcementService.delete(id);

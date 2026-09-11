@@ -22,6 +22,7 @@ import com.basilcode.emsbackend.common.exception.NotFoundException;
 import com.basilcode.emsbackend.common.exception.UnAuthorizeException;
 import com.basilcode.emsbackend.employee.dto.EmployeeRequest;
 import com.basilcode.emsbackend.employee.dto.EmployeeResponse;
+import com.basilcode.emsbackend.employee.dto.EmployeeUpdateRequest;
 import com.basilcode.emsbackend.employee.entity.Employee;
 import com.basilcode.emsbackend.employee.mapper.EmployeeMapper;
 import com.basilcode.emsbackend.employee.repository.EmployeeRepository;
@@ -36,8 +37,9 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class EmployeeServices implements IEmployeeService {
 
-    private static final int TEMP_PASSWORD_MIN = 100_000;
-    private static final int TEMP_PASSWORD_BOUND = 900_000;
+    private static final String TEMP_PASSWORD_ALPHABET =
+            "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final int TEMP_PASSWORD_LENGTH = 12;
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
@@ -102,7 +104,11 @@ public class EmployeeServices implements IEmployeeService {
     }
 
     private String generateTemporaryPassword() {
-        return String.valueOf(TEMP_PASSWORD_MIN + secureRandom.nextInt(TEMP_PASSWORD_BOUND));
+        StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            password.append(TEMP_PASSWORD_ALPHABET.charAt(secureRandom.nextInt(TEMP_PASSWORD_ALPHABET.length())));
+        }
+        return password.toString();
     }
 
     private static final List<UserTypeEnum> FULL_DIRECTORY_ACCESS_TYPES =
@@ -156,7 +162,7 @@ public class EmployeeServices implements IEmployeeService {
 
     @Override
     @Transactional
-    public EmployeeResponse updateEmployee(UUID id, EmployeeRequest request) {
+    public EmployeeResponse updateEmployee(UUID id, EmployeeUpdateRequest request) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Employee not found with id: " + id));
 

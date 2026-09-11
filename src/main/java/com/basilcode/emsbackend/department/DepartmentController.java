@@ -21,7 +21,7 @@ public class DepartmentController {
     private final DepartmentServices departmentServices;
 
     @PostMapping
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<DepartmentResponse>> createDepartment(
             @Valid @RequestBody DepartmentRequest request) {
         DepartmentResponse response = departmentServices.createDepartment(request);
@@ -42,7 +42,7 @@ public class DepartmentController {
     }
 
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<DepartmentResponse>> updateDepartment(
             @PathVariable UUID id,
             @Valid @RequestBody DepartmentRequest request) {
@@ -51,7 +51,7 @@ public class DepartmentController {
     }
 
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<Void> deleteDepartment(@PathVariable UUID id) {
         departmentServices.deleteDepartment(id);
         return ResponseEntity.noContent().build();

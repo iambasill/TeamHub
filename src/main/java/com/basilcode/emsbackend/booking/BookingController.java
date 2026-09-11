@@ -43,7 +43,7 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success("Resources retrieved", resources));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping("/resources")
     public ResponseEntity<ApiResponse<ResourceDto>> createResource(@Valid @RequestBody CreateResourceRequest request) {
         Resource resource = bookingService.createResource(request.name(), request.description(), request.capacity());

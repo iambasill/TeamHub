@@ -4,6 +4,7 @@ import com.basilcode.emsbackend.common.response.ApiResponse;
 import com.basilcode.emsbackend.employee.dto.EmployeeQuerySearch;
 import com.basilcode.emsbackend.employee.dto.EmployeeRequest;
 import com.basilcode.emsbackend.employee.dto.EmployeeResponse;
+import com.basilcode.emsbackend.employee.dto.EmployeeUpdateRequest;
 import com.basilcode.emsbackend.employee.dto.ProfilePictureRequest;
 import com.basilcode.emsbackend.employee.service.IEmployeeService;
 import jakarta.validation.Valid;
@@ -29,7 +30,7 @@ public class EmployeeController {
     private final IEmployeeService employeeService;
 
     @PostMapping
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> createEmployee(
             @Valid @RequestBody EmployeeRequest employeeRequest) {
         EmployeeResponse response = employeeService.createEmployee(employeeRequest);
@@ -71,10 +72,10 @@ public class EmployeeController {
     }
 
     @PutMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> updateEmployee(
             @PathVariable UUID id,
-            @Valid @RequestBody EmployeeRequest employeeRequest) {
+            @Valid @RequestBody EmployeeUpdateRequest employeeRequest) {
         EmployeeResponse response = employeeService.updateEmployee(id, employeeRequest);
         return ResponseEntity.ok(ApiResponse.success("Employee updated successfully", response));
     }
@@ -82,14 +83,14 @@ public class EmployeeController {
     /** Soft-deactivates the employee record and locks their login — see
      * {@code EmployeeServices.deleteEmployee} for why both happen together. */
     @DeleteMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<Void> deleteEmployee(@PathVariable UUID id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/activate")
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<EmployeeResponse>> activateEmployee(@PathVariable UUID id) {
         EmployeeResponse response = employeeService.activateEmployee(id);
         return ResponseEntity.ok(ApiResponse.success("Employee reactivated successfully", response));

@@ -40,7 +40,7 @@ public class LeaveRequestController {
     }
 
     @GetMapping
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<LeaveRequestResponse>>> getAllLeaveRequests(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) UUID employeeId) {
@@ -49,14 +49,14 @@ public class LeaveRequestController {
     }
 
     @GetMapping("/{id}")
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeaveRequestResponse>> getLeaveRequest(@PathVariable UUID id) {
         LeaveRequestResponse response = leaveRequestServices.getLeaveRequest(id);
         return ResponseEntity.ok(ApiResponse.success("Leave request retrieved successfully", response));
     }
 
     @PutMapping("/{id}/approve")
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeaveRequestResponse>> approveLeaveRequest(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails currentUser) {
@@ -65,7 +65,7 @@ public class LeaveRequestController {
     }
 
     @PutMapping("/{id}/reject")
-    // @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('MANAGER','HR','ADMIN','SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<LeaveRequestResponse>> rejectLeaveRequest(
             @PathVariable UUID id,
             @AuthenticationPrincipal UserDetails currentUser) {

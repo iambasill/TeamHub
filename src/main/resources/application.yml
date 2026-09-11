@@ -33,7 +33,7 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     validate-on-migrate: true
-    clean-disabled: false
+    clean-disabled: ${FLYWAY_CLEAN_DISABLED:true}
     # A later-versioned migration (announcement_audiences, V39) was applied to this DB before
     # several earlier-versioned ones (V34-38) existed on disk yet — a one-off sequencing gap
     # from active development, not a real ordering dependency between them (each of V34-38
@@ -55,6 +55,8 @@ spring:
       max-file-size: 25MB
       max-request-size: 25MB
 app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8000,http://localhost:3000}
   mail:
     from-name: ${MAIL_FROM}
   storage:

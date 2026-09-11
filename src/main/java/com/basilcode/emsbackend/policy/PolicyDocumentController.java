@@ -40,7 +40,7 @@ public class PolicyDocumentController {
         return ResponseEntity.ok(ApiResponse.success("Policy documents retrieved", documents));
     }
 
-    // @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')") // TODO: re-enable when permission model is finalised
+    @PreAuthorize("hasAnyRole('HR','ADMIN','SUPER_ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<PolicyDocumentDto>> upload(
             @RequestParam("file") MultipartFile file,
